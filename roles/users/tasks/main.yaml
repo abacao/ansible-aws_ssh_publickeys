@@ -1,0 +1,39 @@
+---
+- command: cat {{ item }}
+  register: ssh_keys
+  with_fileglob: .pubkeys/*.pub
+  delegate_to: localhost
+  become: no
+
+# - name: display content of all files in dir
+#   debug: msg={{ ssh_keys }}
+
+- name: Create usernames
+  user: # username is the last path component of the filename (item.item.split('/')[-1]), and then we need to remove .keys ([:-4]).
+    name: "{{ item.item.split('/')[-1][:-4] }}"
+    shell: /bin/bash
+    createhome: yes
+    comment: "created with ansible"
+  with_items: "{{ ssh_keys.results }}"
+
+# - name: Display usernames debbuging
+#   debug: msg={{ item.item.split('/')[-1][:-4] }}
+#   with_items: '{{ ssh_keys.results }}'
+
+- name: Register user public key realpath
+  set_fact:
+    user_list: "{{ ssh_keys.results | map(attribute='item') | list }}"
+
+- name: Setup | authorized key upload
+  authorized_key:
+    user: "{{ item | basename | splitext | first }}"
+    key: "{{ lookup('file','{{ item }}' | basename) }}"
+  with_items: '{{ user_list }}'
+
+- name: Sudoers | update sudoers file and validate
+  lineinfile: "dest=/etc/sudoers
+    insertafter=EOF
+    line='{{ item.item.split('/')[-1][:-4] }} ALL=(ALL) NOPASSWD: ALL'
+    regexp='^{{ item.item.split('/')[-1][:-4] }} .*'
+    state=present"
+  with_items: '{{ ssh_keys.results }}'

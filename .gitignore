@@ -1,0 +1,12 @@
+[Ansible]
+*.retry
+*.pub
+
+[Terraform]
+.terraform/
+
+[Dev]
+*.bak
+*.old
+*.save
+*.swp

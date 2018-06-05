@@ -1,0 +1,22 @@
+---
+- hosts: all
+  user: admin
+  become: true
+  become_user: root
+  become_method: sudo
+  gather_facts: False
+
+  pre_tasks:
+    - name: dependency provisioning
+      raw: sudo apt-get -y install python-simplejson aptitude python-minimal
+
+  roles:
+    - os_hardening
+    - users
+
+  # post_tasks:
+  #    - name: restart server
+  #      shell: 'sleep 1 && shutdown -r now "Reboot triggered by Ansible" && sleep 1'
+  #      async: 1
+  #      poll: 0
+  #      #become: true
